@@ -13,19 +13,53 @@ root.geometry("900x500+300+200")
 root.resizable(False,False)
 
 def getWeather():
-    city=textfield.get()
+    city = textfield.get()
 
-    geolocator=Nominatim(user_agent="weather_app_1234")
-    location= geolocator.geocode(city)
-    obj =TimezoneFinder()
-    result = obj.timezone_at(lng=location.longitude,lat=location.latitude)
-    
+    # Geopy setup
+    geolocator = Nominatim(user_agent="weather_app_1234")
+    location = geolocator.geocode(city)
 
-    home=pytz.timezone(result)
-    local_time=datetime.now(home)
-    current_time=local_time.strftime("%I:%M %p")
+    if location is None:
+        messagebox.showerror("Error", "Invalid City Name")
+        return
+
+    obj = TimezoneFinder()
+    result = obj.timezone_at(lng=location.longitude, lat=location.latitude)
+
+    home = pytz.timezone(result)
+    local_time = datetime.now(home)
+    current_time = local_time.strftime("%I:%M %p")
     clock.config(text=current_time)
     name.config(text="CURRENT WEATHER")
+
+    # OpenWeatherMap API Call (Fixed)
+    api = f"https://api.openweathermap.org/data/2.5/weather?lat={location.latitude}&lon={location.longitude}&appid=c557776228932cd73ed718e33dea25b1&units=metric"
+    
+    try:
+        json_data = requests.get(api).json()
+
+        if json_data.get("cod") != 200:
+            messagebox.showerror("Error", "Could not fetch weather data!")
+            return
+
+        condition = json_data['weather'][0]['main']
+        description = json_data['weather'][0]['description']
+        temp = json_data['main']['temp']
+        pressure = json_data['main']['pressure']
+        humidity = json_data['main']['humidity']
+        wind = json_data['wind']['speed']
+
+        t.config(text=(temp, "°C"))
+        c.config(text=(condition, "|", "FEELS LIKE", temp, "°C"))
+        w.config(text=wind)
+        h.config(text=humidity)
+        d.config(text=description)
+        p.config(text=pressure)
+
+    except requests.exceptions.RequestException as e:
+        messagebox.showerror("Error", "Network Error:")
+
+    
 
 
 
